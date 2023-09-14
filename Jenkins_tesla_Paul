@@ -1,0 +1,39 @@
+node{
+    def mavenHome = tool name: 'Maven'
+       stage('1cloneclode'){
+git "https://github.com/PaulAkingbade/maven-web-application"
+}
+stage('2Test&build'){
+sh "${mavenHome}/bin/mvn  clean package"
+}
+       stage('3codequality'){
+sh "${mavenHome}/bin/mvn  clean sonar:sonar"
+}
+     stage('4upload artifacts'){
+sh "${mavenHome}/bin/mvn  deploy"
+}
+stage ('5deploy2UAT'){
+sh "echo 'deploy to UAT' "
+deploy adapters: [tomcat9(credentialsId: 'tomcatcred', path: '', 
+url: 'http://54.209.235.54:8080/')], contextPath: null, war: 'target/*war'
+    }
+       stage ('6approvalgate'){
+sh "echo 'Ready for review' "
+timeout (time:5, unit:'DAYS') {
+input message: 'Application ready for deployment. Please review and approve'
+     }
+}
+stage ('7deploy2Prod'){
+sh "echo 'deploy to Prod' "
+deploy adapters: [tomcat9(credentialsId: 'tomcatcred', path: '', 
+url: 'http://54.209.235.54:8080/')], contextPath: null, war: 'target/*war'
+    }
+    stage('8emailNotification'){
+emailext body: '''Hi Paul,
+
+The build and release has been completed.
+
+Regards,''', subject: 'Build Status', to: 'damjoe01@yahoo.com'
+}
+
+}
