@@ -1,0 +1,44 @@
+agent any
+tools  {
+maven "Maven"
+}
+stages {
+       stage('1GetCode'){
+steps{
+    sh "echo 'cloning the latest application version' "
+    git "https://github.com/PaulAkingbade/maven-web-application"
+}
+}
+       stage('2Test+build'){
+           steps {
+               sh "echo 'running JUnit-test-cases' "
+               sh "echo 'testing must pass to create artifacts' "
+               sh "mvn clean package"
+       }
+       }
+        stage('3codequality'){
+           steps {
+               sh "echo 'running Code Quality Analysis' "
+               sh "mvn sonar:sonar"
+       }
+       }
+         stage('4uploadtoNexus'){
+           steps {
+               sh "echo 'upload to Nexus' "
+               sh "mvn deploy"
+       }
+       }
+       stage('5Deploy2Prod'){
+           steps {
+                deploy adapters: [tomcat9(credentialsId: 'tomcatcred',
+     path: '', url: 'http://54.209.235.54:8080/')], contextPath: null, war: 'target/*war'
+       }
+       }
+}
+post {
+Always{emailext body: 'Please check build status', subject: 'Status', to: 'me@gmail.com'}
+Success{emailext body: 'Good job on this pipeline build', subject: 'Success', to: 'me@gmail.com'}
+Failure{emailext body: 'Build failed', subject: 'Failed', to: 'me@gmail.com'}
+}
+}
+}
